@@ -20,6 +20,7 @@ export default function DeltaFlyerPage() {
 
   const [receivedData, setReceivedData] = useState(null)
 
+
   useEffect(() => {
 
     async function getLocalCapture() {

@@ -182,15 +182,17 @@ function IndexPopup() {
     })
   }
 
-  async function setting() {
-    // contentScript()
+  async function handleFullPage() {
+    console.log("handleFullPage...")
+
+    await storage.remove("captureData")
 
     const tabs = await chrome.tabs.query({
       active: true,
       currentWindow: true
     })
     const tabId = tabs[0].id
-    chrome.tabs.sendMessage(tabId, { action: "captureFullPage" }, (response) => {
+    chrome.tabs.sendMessage(tabId, { action: "captureFullPage", tabId }, (response) => {
       if (chrome.runtime.lastError || !response) {
         console.log("Failed to get page info.")
       } else {
@@ -203,6 +205,8 @@ function IndexPopup() {
       }
     })
   }
+
+  function setting() {}
   
   return (
     <div
@@ -242,7 +246,7 @@ function IndexPopup() {
           </div> */}
           <div
             className="action-item fullpage align-center border border-gray-300 dark:border-gray-600 border-r-8 cursor-pointer flex h-14 line-height-4 px-4 relative text-center"
-            id="entire">
+            id="entire" onClick={() => handleFullPage()}>
             <svg
               xmlns="http://www.w3.org/2000/svg"
               fill="none"
@@ -332,7 +336,7 @@ function IndexPopup() {
           </div>
           <div
             className="flex items-center justify-center text-gray-500"
-            onClick={() => setting()}>
+            onClick={() => handleFullPage()}>
             <button className="flex items-center justify-center gap-x-1 font-semibold text-muted">
               <svg
                 xmlns="http://www.w3.org/2000/svg"

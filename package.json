@@ -46,6 +46,7 @@
       ]
     },
     "permissions": [
+      "downloads",
       "scripting",
       "tabs",
       "storage",
