@@ -53,12 +53,9 @@ export default function DeltaFlyerPage() {
           flexDirection: "column",
           padding: 16
         }}>
-        <h2>Delta Flyer Tab</h2>
+        <h2>滚动截屏预览</h2>
   
-        <p>This tab is only available on the Delta Flyer page.</p>
-        {
-          receivedData?.screenshotUrl
-        }
+     
         {
          !isEmpty(receivedData) &&  <img src={receivedData?.screenshotUrl} alt="finalData" />
         }

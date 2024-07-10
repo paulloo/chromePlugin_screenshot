@@ -121,9 +121,9 @@ async function captureFullPage() {
 
   while (totalHeight < height) {
     window.scrollTo(0, totalHeight)
-    if (totalHeight > 0) {
-      removeFixedAndStickyElements() // 移除固定和粘性元素
-    }
+    // if (totalHeight > 0) {
+    //   removeFixedAndStickyElements() // 移除固定和粘性元素
+    // }
 
     await sleep(600)
 
@@ -142,7 +142,7 @@ async function captureFullPage() {
   }
 
   restoreScrollBars()
-  restoreFixedAndStickyElements() // 恢复固定和粘性元素
+  // restoreFixedAndStickyElements() // 恢复固定和粘性元素
   // 将最终合成的截图导出为 data URL
   // const finalDataURL = finalCanvas.toDataURL()
 
