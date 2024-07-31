@@ -36,9 +36,7 @@ import pokemonIcon from "~assets/img/icon_game.svg"
 import vaderIcon from "~assets/img/icon_helmet.svg"
 import r2d2Icon from "~assets/img/icon_r2d2.svg"
 import simpleIcon from "~assets/img/icon_stopwatch.svg"
-
-import StarRating from "./StarRating"
-import { usePort } from "@plasmohq/messaging/hook"
+import { unescape } from "querystring"
 
 const projects = [
   {
@@ -122,6 +120,12 @@ const capturePort = getPort('capture')
 function IndexPopup() {
   const timerRef = useRef(null)
   const progressTimerRef = useRef(null)
+  const urlRef = useRef(null)
+
+  const iframeRef = useRef<HTMLIFrameElement>(null)
+
+
+  const [articleData, setArticleData] = useState({})
 
   const timeRangeList = [
     // {
@@ -170,11 +174,13 @@ function IndexPopup() {
 
   const sleep = (ms: number) =>
     new Promise((resolve) => setTimeout(resolve, ms))
-  async function getPageInfo(tabId) {
+  async function setArtcleToMp(message) {
+    const tabIds = await chrome.tabs.query({ active: true, currentWindow: true })
+    const tabId = tabIds[0].id
     return new Promise((resolve, reject) => {
-      chrome.tabs.sendMessage(tabId, { action: "getPageInfo" }, (response) => {
+      chrome.tabs.sendMessage(tabId, { action: "setArticleToRichText", data: message }, (response) => {
         if (chrome.runtime.lastError || !response) {
-          reject("Failed to get page info.")
+          reject(`setArticleToRichText error:${JSON.stringify(chrome.runtime.lastError)}`)
         } else {
           resolve(response)
         }
@@ -182,32 +188,89 @@ function IndexPopup() {
     })
   }
 
+  useEffect(() => {
+    function listener(event) {
+      setArtcleToMp(event.data)
+    }
+    window.addEventListener("message", listener)
+
+    return () => {
+      window.removeEventListener("message", listener)
+    }
+  }, [])
+
   async function handleFullPage() {
-    console.log("handleFullPage...")
 
-    await storage.remove("captureData")
+    try {
 
-    const tabs = await chrome.tabs.query({
-      active: true,
-      currentWindow: true
-    })
-    const tabId = tabs[0].id
-    chrome.tabs.sendMessage(tabId, { action: "captureFullPage", tabId }, (response) => {
-      if (chrome.runtime.lastError || !response) {
-        console.log("Failed to get page info.")
-      } else {
-        console.log('captureFullPage cb: ', response)
-        // capturePort.postMessage({
-        //   body: {
-        //     url: response
-        //   }
-        // })
+      const url = urlRef.current.value
+      if(!url) {
+        console.log('请输入网址')
+        return
       }
-    })
+      const { message } = await sendToBackground({
+        name: "articleSpider",
+        body: {
+          url,
+          rules: {
+              title: "h1#section_0 > a",
+              profile: "div.mf-section-0 > p",  
+              steps: {
+                  step_xpath: "div.section.steps",
+                  step_title_xpath: "div.headline_info > h3 > span.mw-headline",
+                  step_item_xpath: "li",
+                  step_item_img_xpath: "div.content-spacer > img",
+                  step_item_content_xpath: "div.step",
+                  step_item_content_children: "li"
+              }
+          },
+          filters: [
+              "sup"
+          ]
+        },
+        extensionId: process.env.PLASMO_PUBLIC_EXTENSION_ID // find this in chrome's extension manager
+        // extensionId: 'pljhffcodclmdedjkpdjedfohelamjka'
+      })
+  
+  
+      // console.log("message: ", message)
+      const templateUrl = chrome.runtime.getURL('templates/puppy.hbs')
+      fetch(templateUrl)
+          .then(response => response.text())
+          .then(templateSource => {
+              // 渲染模板并插入到 DOM 中
+              console.log("message: ", message);
+              const json = {
+                ...message,
+                guide: '点击上方蓝字关注我们',
+                history: [{
+                    title: '试试这个三分钟妙招，养狗新手秒变驯犬高手！',
+                    url: 'http://mp.weixin.qq.com/s?__biz=MzAwODI3OTQyMA==&amp;mid=2247489061&amp;idx=1&amp;sn=db0a547256f1f50e4b64f976840f7c07&amp;chksm=9b701236ac079b2059613eeff6d63a55c22f881a02f695c02444ac95ac201a8430680e285c59&amp;scene=21#wechat_redirect'
+                }, {
+                    title: '喂养小狗，不仅仅是选狗粮这么简单',
+                    url: 'http://mp.weixin.qq.com/s?__biz=MzAwODI3OTQyMA==&amp;mid=2247484435&amp;idx=1&amp;sn=4b9e12061a1645a4f7599e78f372213f&amp;chksm=9b700000ac0789161b65aada7df60a7a7125f75f2762636bc60b26c95c30cc77f49a313f2e3d&amp;scene=21#wechat_redirect'
+                }, {
+                    title: '炎炎夏日，狗友提醒：警惕狗狗中暑！',
+                    url: 'http://mp.weixin.qq.com/s?__biz=MzAwODI3OTQyMA==&amp;mid=2247484414&amp;idx=1&amp;sn=e35c36c8683b8d7dcc31373209b7e73b&amp;chksm=9b7007edac078efbdc9d3369b02f1a70fc03ef49e677e9b63696717cc1b2e1323618cbd07b9a&amp;scene=21#wechat_redirect'
+                }]
+            }
+              iframeRef.current?.contentWindow.postMessage({
+                temp: templateSource,
+                data: json
+              }, "*")
+          })
+          .catch(error => console.error("Error loading template:", error));
+  
+      // setArticleData(message)
+    } catch(err) {
+      console.error(err)
+    }
+
   }
 
-  function setting() {}
-  
+
+
+
   return (
     <div
       className={clsx(
@@ -222,6 +285,7 @@ function IndexPopup() {
         </div> */}
 
         <div className="action-container flex flex-col text-sm gap-3 justify-between px-4 py-4">
+          <input type="text" placeholder="请输入网址" ref={urlRef} />
           {/* <div
             className="action-item select align-center border border-gray-300 dark:border-gray-600 border-r-8 cursor-pointer flex h-14 px-4 relative text-center"
             id="selected"
@@ -261,7 +325,7 @@ function IndexPopup() {
                 d="M13.5 6H5.25A2.25 2.25 0 0 0 3 8.25v10.5A2.25 2.25 0 0 0 5.25 21h10.5A2.25 2.25 0 0 0 18 18.75V10.5m-10.5 6L21 3m0 0h-5.25M21 3v5.25"></path>
             </svg>
             <div className="tip align-center flex flex-1 text-sm font-bold ml-2">
-              Full Page
+              一键生成
             </div>
             <div className="short-cut-tip">Ctrl+Shift+E</div>
           </div>
@@ -357,6 +421,13 @@ function IndexPopup() {
           </div>
         </div>
       </section>
+      <button
+        onClick={() => {
+          iframeRef.current.contentWindow.postMessage("10 + 20", "*")
+        }}>
+        Trigger iframe eval
+      </button>
+      <iframe src="sandboxes/mpWixin.html" ref={iframeRef} style={{ display: "none" }} />
     </div>
   )
 }

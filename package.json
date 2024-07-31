@@ -17,6 +17,7 @@
     "axios": "^1.7.2",
     "clsx": "^2.1.1",
     "dayjs": "^1.11.11",
+    "handlebars": "^4.7.8",
     "next": "^14.2.4",
     "plasmo": "0.88.0",
     "radash": "^12.1.0",
@@ -54,6 +55,9 @@
       "contextMenus",
       "activeTab"
     ],
+    "content_security_policy": {
+      "extension_pages": "script-src 'self'; object-src 'self'"
+    },
     "web_accessible_resources": [
       {
         "matches": [
@@ -64,7 +68,10 @@
           "assets/img/*.jpg",
           "assets/img/*.svg",
           "assets/sound/*.mp3",
-          "resources/test.json"
+          "resources/test.json",
+          "templates/*.hbs",
+          "templates/*.tsx",
+          "sandboxes/*.ts"
         ]
       }
     ]
