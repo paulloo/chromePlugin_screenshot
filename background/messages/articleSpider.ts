@@ -57,74 +57,82 @@ const handler: PlasmoMessaging.MessageHandler = async (req, res) => {
 
     
     async function cozeBotApi(str) {
-        const apiURL = 'https://api.coze.cn/v3/chat'
-        const params = {
-            bot_id: botId,
-            user_id: userId,
-            additional_messages: [
-                {
-                    role: "user",
-                    content: typeof str === 'object' ? JSON.stringify(str) : str,
-                    content_type: "text"
-                }
-            ],
-            stream: false
-        }
-        const response = await axios({
-            url: apiURL,
-            method: 'POST',
-            data: params,
-            headers: {
-                'Content-Type': 'application/json',
-                Authorization: `Bearer ${cozeToken}`,
+        try {
+            const apiURL = 'https://api.coze.cn/v3/chat'
+            const params = {
+                bot_id: botId,
+                user_id: userId,
+                additional_messages: [
+                    {
+                        role: "user",
+                        content: typeof str === 'object' ? JSON.stringify(str) : str,
+                        content_type: "text"
+                    }
+                ],
+                stream: false
             }
-        });
+            console.warn('start translate ...', str)
+            const response = await axios({
+                url: apiURL,
+                method: 'POST',
+                data: params,
+                headers: {
+                    'Content-Type': 'application/json',
+                    Authorization: `Bearer ${cozeToken}`,
+                }
+            });
+    
+            const a = 0.01
+            const L = str.length
+            const b = 1
 
-
-        const a = 0.01
-        const L = str.length
-        const b = 1
-
-        const durationAfter = (a * L + b) * 1000
-        console.log('current Duration: ', durationAfter * timerCount)
-        let messages = []
-
-        async function processConversationResponse(_response: any) {
-            const conversationResponse = await getMessageByConversationId(_response.data.conversation_id, _response.data.id, durationAfter)
-
-            const errorStatus = ['created', 'failed', 'requires_action']
-            const loopStatus = ['in_progress']
-            const finishStatus = ['completed']
-            if(errorStatus.includes(conversationResponse.data.status)) {
+            timerCount = 1
+    
+            const durationAfter = (a * L + b) * 1000
+            console.log('current Duration: ', durationAfter * timerCount)
+            let messages = []
+    
+            async function processConversationResponse(_response: any) {
+                const conversationResponse = await getMessageByConversationId(_response.data.conversation_id, _response.data.id, durationAfter)
+    
+                const errorStatus = ['created', 'failed', 'requires_action']
+                const loopStatus = ['in_progress']
+                const finishStatus = ['completed']
+                if(errorStatus.includes(conversationResponse.data.status)) {
+                    return []
+                }
+    
+                console.log("duration: ", durationAfter * timerCount)
+                if (loopStatus.includes(conversationResponse.data.status)) {
+                    await new Promise(resolve => {
+                        messageTimer = setTimeout(resolve, durationAfter * timerCount)
+                    })
+                    timerCount += 1
+                    clearTimeout(messageTimer)
+                    return processConversationResponse(_response)
+                }
+    
+                if (finishStatus.includes(conversationResponse.data.status)) {
+                    return await getMessageList(_response.data.conversation_id, _response.data.id)
+                }
+    
                 return []
             }
-
-            console.log("duration: ", durationAfter * timerCount)
-            if (loopStatus.includes(conversationResponse.data.status)) {
-                await new Promise(resolve => {
-                    messageTimer = setTimeout(resolve, durationAfter * timerCount)
-                })
-                timerCount += 1
-                clearTimeout(messageTimer)
-                return processConversationResponse(_response)
-            }
-
-            if (finishStatus.includes(conversationResponse.data.status)) {
-                return await getMessageList(_response.data.conversation_id, _response.data.id)
-            }
-
-            return []
+    
+            messages = await processConversationResponse(response.data)
+    
+            const answer = messages.find(item => item.type === "answer") || {}
+            // if (answer) {
+            //     const { output } = JSON.parse(answer.content)
+            //     return output
+            // }
+            console.log('translate response: ', answer)
+    
+            return answer?.content? answer.content: str
+        } catch(err) {
+            console.error(err)
+            return str
         }
-
-        messages = await processConversationResponse(response.data)
-
-        const answer = messages.find(item => item.type === "answer")
-        // if (answer) {
-        //     const { output } = JSON.parse(answer.content)
-        //     return output
-        // }
-
-        return answer.content
     }
 
     async function optimizeData(data, translate = false) {
@@ -188,6 +196,7 @@ const handler: PlasmoMessaging.MessageHandler = async (req, res) => {
     
     const translate = true
     const result = await optimizeData(data, translate);
+    // const result = data;
     res.send({
       message: result
     })

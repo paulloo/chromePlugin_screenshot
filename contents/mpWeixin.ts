@@ -9,7 +9,7 @@ export const config: PlasmoCSConfig = {
 const tmp = ""
 
 window.addEventListener("load", () => {
-  document.body.style.background = "blue"
+  // document.body.style.background = "blue"
 })
 
 

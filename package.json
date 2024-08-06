@@ -71,6 +71,7 @@
           "resources/test.json",
           "templates/*.hbs",
           "templates/*.tsx",
+          "templates/*.json",
           "sandboxes/*.ts"
         ]
       }

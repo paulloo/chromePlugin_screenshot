@@ -208,58 +208,70 @@ function IndexPopup() {
         console.log('请输入网址')
         return
       }
-      const { message } = await sendToBackground({
-        name: "articleSpider",
-        body: {
-          url,
-          rules: {
-              title: "h1#section_0 > a",
-              profile: "div.mf-section-0 > p",  
-              steps: {
-                  step_xpath: "div.section.steps",
-                  step_title_xpath: "div.headline_info > h3 > span.mw-headline",
-                  step_item_xpath: "li",
-                  step_item_img_xpath: "div.content-spacer > img",
-                  step_item_content_xpath: "div.step",
-                  step_item_content_children: "li"
-              }
+
+      const localData = true
+
+      let data = {}
+
+      if(!localData) {
+
+        const { message } = await sendToBackground({
+          name: "articleSpider",
+          body: {
+            url,
+            rules: {
+                title: "h1#section_0 > a",
+                profile: "div.mf-section-0 > p",  
+                steps: {
+                    step_xpath: "div.section.steps",
+                    step_title_xpath: "div.headline_info > h3 > span.mw-headline",
+                    step_item_xpath: "li",
+                    step_item_img_xpath: "div.content-spacer > img",
+                    step_item_content_xpath: "div.step",
+                    step_item_content_children: "li"
+                }
+            },
+            filters: [
+                "sup"
+            ]
           },
-          filters: [
-              "sup"
-          ]
-        },
-        extensionId: process.env.PLASMO_PUBLIC_EXTENSION_ID // find this in chrome's extension manager
-        // extensionId: 'pljhffcodclmdedjkpdjedfohelamjka'
-      })
+          extensionId: process.env.PLASMO_PUBLIC_EXTENSION_ID // find this in chrome's extension manager
+          // extensionId: 'pljhffcodclmdedjkpdjedfohelamjka'
+        })
+
+        data = message
+      } else {
+        const calm_down_when_firework_url = chrome.runtime.getURL('templates/calm_down_when_firework.json')
   
+        const calmDownWhenFireWork = await fetch(calm_down_when_firework_url).then(response => response.text())
+        console.log("calm_down_when_firework: ", JSON.parse(calmDownWhenFireWork))
   
-      // console.log("message: ", message)
+        data = JSON.parse(calmDownWhenFireWork)
+      }
+
       const templateUrl = chrome.runtime.getURL('templates/puppy.hbs')
-      fetch(templateUrl)
-          .then(response => response.text())
-          .then(templateSource => {
-              // 渲染模板并插入到 DOM 中
-              console.log("message: ", message);
-              const json = {
-                ...message,
-                guide: '点击上方蓝字关注我们',
-                history: [{
-                    title: '试试这个三分钟妙招，养狗新手秒变驯犬高手！',
-                    url: 'http://mp.weixin.qq.com/s?__biz=MzAwODI3OTQyMA==&amp;mid=2247489061&amp;idx=1&amp;sn=db0a547256f1f50e4b64f976840f7c07&amp;chksm=9b701236ac079b2059613eeff6d63a55c22f881a02f695c02444ac95ac201a8430680e285c59&amp;scene=21#wechat_redirect'
-                }, {
-                    title: '喂养小狗，不仅仅是选狗粮这么简单',
-                    url: 'http://mp.weixin.qq.com/s?__biz=MzAwODI3OTQyMA==&amp;mid=2247484435&amp;idx=1&amp;sn=4b9e12061a1645a4f7599e78f372213f&amp;chksm=9b700000ac0789161b65aada7df60a7a7125f75f2762636bc60b26c95c30cc77f49a313f2e3d&amp;scene=21#wechat_redirect'
-                }, {
-                    title: '炎炎夏日，狗友提醒：警惕狗狗中暑！',
-                    url: 'http://mp.weixin.qq.com/s?__biz=MzAwODI3OTQyMA==&amp;mid=2247484414&amp;idx=1&amp;sn=e35c36c8683b8d7dcc31373209b7e73b&amp;chksm=9b7007edac078efbdc9d3369b02f1a70fc03ef49e677e9b63696717cc1b2e1323618cbd07b9a&amp;scene=21#wechat_redirect'
-                }]
-            }
-              iframeRef.current?.contentWindow.postMessage({
-                temp: templateSource,
-                data: json
-              }, "*")
-          })
-          .catch(error => console.error("Error loading template:", error));
+      const templateSource = await fetch(templateUrl).then(response => response.text())
+
+      // 渲染模板并插入到 DOM 中
+      console.log("message: ", data);
+      const json = {
+        ...data,
+        guide: '点击上方蓝字关注我们',
+        history: [{
+            title: '试试这个三分钟妙招，养狗新手秒变驯犬高手！',
+            url: 'http://mp.weixin.qq.com/s?__biz=MzAwODI3OTQyMA==&amp;mid=2247489061&amp;idx=1&amp;sn=db0a547256f1f50e4b64f976840f7c07&amp;chksm=9b701236ac079b2059613eeff6d63a55c22f881a02f695c02444ac95ac201a8430680e285c59&amp;scene=21#wechat_redirect'
+        }, {
+            title: '喂养小狗，不仅仅是选狗粮这么简单',
+            url: 'http://mp.weixin.qq.com/s?__biz=MzAwODI3OTQyMA==&amp;mid=2247484435&amp;idx=1&amp;sn=4b9e12061a1645a4f7599e78f372213f&amp;chksm=9b700000ac0789161b65aada7df60a7a7125f75f2762636bc60b26c95c30cc77f49a313f2e3d&amp;scene=21#wechat_redirect'
+        }, {
+            title: '炎炎夏日，狗友提醒：警惕狗狗中暑！',
+            url: 'http://mp.weixin.qq.com/s?__biz=MzAwODI3OTQyMA==&amp;mid=2247484414&amp;idx=1&amp;sn=e35c36c8683b8d7dcc31373209b7e73b&amp;chksm=9b7007edac078efbdc9d3369b02f1a70fc03ef49e677e9b63696717cc1b2e1323618cbd07b9a&amp;scene=21#wechat_redirect'
+        }]
+    }
+      iframeRef.current?.contentWindow.postMessage({
+        temp: templateSource,
+        data: json
+      }, "*")
   
       // setArticleData(message)
     } catch(err) {
@@ -277,156 +289,50 @@ function IndexPopup() {
         "w-96 bg-no-repeat bg-center",
         currentTheme.theme || "theme-light"
       )}>
-      <section id="main" className="flex h-full flex-col justify-between">
+      <section id="main" className="flex h-full flex-col justify-between px-4 py-4">
         {/* <div className="border-b-2 p-4 dark:border-gray-800">
           <h1 className="text-center text-xl font-semibold leading-6">
             倒计时
           </h1>
         </div> */}
 
-        <div className="action-container flex flex-col text-sm gap-3 justify-between px-4 py-4">
-          <input type="text" placeholder="请输入网址" ref={urlRef} />
-          {/* <div
-            className="action-item select align-center border border-gray-300 dark:border-gray-600 border-r-8 cursor-pointer flex h-14 px-4 relative text-center"
-            id="selected"
-            title="">
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              fill="none"
-              viewBox="0 0 24 24"
-              strokeWidth="1.5"
-              stroke="currentColor"
-              aria-hidden="true"
-              className="h-4 w-4">
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                d="M13.5 6H5.25A2.25 2.25 0 0 0 3 8.25v10.5A2.25 2.25 0 0 0 5.25 21h10.5A2.25 2.25 0 0 0 18 18.75V10.5m-10.5 6L21 3m0 0h-5.25M21 3v5.25"></path>
-            </svg>
-            <div className="tip align-center flex flex-1 text-sm font-bold line-height-4 ml-2">
-              Selected Area
+        <div className="grid grid-cols-1 gap-x-6 gap-y-8 sm:grid-cols-6 ">
+          <div className="sm:col-span-4">
+            <label htmlFor="username" className="block text-sm font-medium leading-6 text-gray-900">
+              WikiHow地址 
+              <button
+                  type="submit"
+                  onClick={() => handleFullPage()}
+                  className="rounded-md bg-indigo-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600"
+                >
+                  生成
+                </button>
+            </label>
+            
+            <div className="mt-2">
+              <div className="flex rounded-md shadow-sm ring-1 ring-inset ring-gray-300 focus-within:ring-2 focus-within:ring-inset focus-within:ring-indigo-600 sm:max-w-md">
+                {/* <span className="flex select-none items-center pl-3 text-gray-500 sm:text-sm">wikihow/</span> */}
+                <input
+                  ref={urlRef}
+                  id="resourceUrl"
+                  name="resourceUrl"
+                  type="text"
+                  placeholder="请输入目标网址"
+                  autoComplete="resourceUrl"
+                  className="block flex-1 border-0 bg-transparent py-1.5 pl-1 text-gray-900 placeholder:text-gray-400 focus:ring-0 sm:text-sm sm:leading-6"
+                />
+                <button
+                  type="submit"
+                  onClick={() => handleFullPage()}
+                  className="rounded-md bg-indigo-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600"
+                >
+                  生成
+                </button>
+              </div>
             </div>
-            <div className="short-cut-tip text-xs">Ctrl+Shift+S</div>
-          </div> */}
-          <div
-            className="action-item fullpage align-center border border-gray-300 dark:border-gray-600 border-r-8 cursor-pointer flex h-14 line-height-4 px-4 relative text-center"
-            id="entire" onClick={() => handleFullPage()}>
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              fill="none"
-              viewBox="0 0 24 24"
-              strokeWidth="1.5"
-              stroke="currentColor"
-              aria-hidden="true"
-              className="h-4 w-4">
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                d="M13.5 6H5.25A2.25 2.25 0 0 0 3 8.25v10.5A2.25 2.25 0 0 0 5.25 21h10.5A2.25 2.25 0 0 0 18 18.75V10.5m-10.5 6L21 3m0 0h-5.25M21 3v5.25"></path>
-            </svg>
-            <div className="tip align-center flex flex-1 text-sm font-bold ml-2">
-              一键生成
-            </div>
-            <div className="short-cut-tip">Ctrl+Shift+E</div>
-          </div>
-          {/* <div
-            className="action-item visible align-center border border-gray-300 dark:border-gray-600 border-r-8 cursor-pointer flex h-14 px-4 relative text-center"
-            id="visible">
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              fill="none"
-              viewBox="0 0 24 24"
-              strokeWidth="1.5"
-              stroke="currentColor"
-              aria-hidden="true"
-              className="h-4 w-4">
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                d="M13.5 6H5.25A2.25 2.25 0 0 0 3 8.25v10.5A2.25 2.25 0 0 0 5.25 21h10.5A2.25 2.25 0 0 0 18 18.75V10.5m-10.5 6L21 3m0 0h-5.25M21 3v5.25"></path>
-            </svg>
-            <div className="tip align-center flex flex-1 text-sm font-bold line-height-4 ml-2">
-              Visible Part
-            </div>
-            <div className="short-cut-tip">Ctrl+Shift+V</div>
-          </div>
-          <div
-            className="action-item desktop align-center border border-gray-300 dark:border-gray-600 border-r-8 cursor-pointer flex h-14 px-4 relative text-center"
-            id="desktop">
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              fill="none"
-              viewBox="0 0 24 24"
-              strokeWidth="1.5"
-              stroke="currentColor"
-              aria-hidden="true"
-              className="h-4 w-4">
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                d="M13.5 6H5.25A2.25 2.25 0 0 0 3 8.25v10.5A2.25 2.25 0 0 0 5.25 21h10.5A2.25 2.25 0 0 0 18 18.75V10.5m-10.5 6L21 3m0 0h-5.25M21 3v5.25"></path>
-            </svg>
-            <div className="tip align-center flex flex-1 text-sm font-bold line-height-4 ml-2">
-              Whole Screen &amp; Window
-            </div>
-            <div className="short-cut-tip"></div>
-          </div> */}
-        </div>
-
-        <div
-          id="footer"
-          className="grid grid-cols-2 justify-center gap-x-2 divide-x border-t-2 py-4 text-xs font-semibold dark:divide-gray-800 dark:border-gray-800">
-          <div className="flex items-center justify-center text-gray-500">
-            <a
-              href="https://ddp.life/"
-              rel="noopener noreferrer"
-              target="_blank"
-              className="flex items-center gap-x-1 text-muted">
-              Help
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                fill="none"
-                viewBox="0 0 24 24"
-                strokeWidth="1.5"
-                stroke="currentColor"
-                aria-hidden="true"
-                className="h-4 w-4">
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  d="M13.5 6H5.25A2.25 2.25 0 0 0 3 8.25v10.5A2.25 2.25 0 0 0 5.25 21h10.5A2.25 2.25 0 0 0 18 18.75V10.5m-10.5 6L21 3m0 0h-5.25M21 3v5.25"></path>
-              </svg>
-            </a>
-          </div>
-          <div
-            className="flex items-center justify-center text-gray-500"
-            onClick={() => handleFullPage()}>
-            <button className="flex items-center justify-center gap-x-1 font-semibold text-muted">
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                fill="none"
-                viewBox="0 0 24 24"
-                strokeWidth="1.5"
-                stroke="currentColor"
-                aria-hidden="true"
-                className="h-5 w-5">
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  d="M10.5 6h9.75M10.5 6a1.5 1.5 0 1 1-3 0m3 0a1.5 1.5 0 1 0-3 0M3.75 6H7.5m3 12h9.75m-9.75 0a1.5 1.5 0 0 1-3 0m3 0a1.5 1.5 0 0 0-3 0m-3.75 0H7.5m9-6h3.75m-3.75 0a1.5 1.5 0 0 1-3 0m3 0a1.5 1.5 0 0 0-3 0m-9.75 0h9.75"></path>
-              </svg>
-
-              {couting ? "Cancel" : `Start`}
-            </button>
           </div>
         </div>
       </section>
-      <button
-        onClick={() => {
-          iframeRef.current.contentWindow.postMessage("10 + 20", "*")
-        }}>
-        Trigger iframe eval
-      </button>
       <iframe src="sandboxes/mpWixin.html" ref={iframeRef} style={{ display: "none" }} />
     </div>
   )
