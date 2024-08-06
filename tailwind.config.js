@@ -4,7 +4,10 @@ const colors = require('tailwindcss/colors')
 
 module.exports = {
   mode: "jit",
-  content: ["./**/*.tsx"],
+  content: [
+    "./**/*.tsx",
+    'node_modules/flowbite-react/lib/esm/**/*.js'
+  ],
   darkMode: "class",
   theme: {
     extend: {
@@ -32,6 +35,8 @@ module.exports = {
       secondary: 'var(--color-secondary)',
     }
   },
-  plugins: [],
+  plugins: [
+    require('flowbite/plugin')
+  ],
 }
 
